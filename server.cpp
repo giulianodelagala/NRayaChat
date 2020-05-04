@@ -13,11 +13,12 @@
 #include <vector>
 #include <map>
 
+
 #include "tresraya.h"
 
 using namespace std;
 
-std::map<char, int> LISTA_CLIENTES;
+std::vector<pair<char, int>> LISTA_CLIENTES;
 //Un mapa inverso, otra opcion es un Bimap
 std::map<int,char> R_LISTA;
 
@@ -37,6 +38,13 @@ string PadZeros(int number, int longitud)
   return num_letra;
 }
 
+void IniciarJuego()
+{
+  TresRaya.ReiniciarTablero();
+  TURNO = 0;
+
+}
+
 void EnviarMensaje(int socket_client, string mensaje)
 {
   //mensaje = PadZeros(mensaje.length() + 1, 3) + mensaje + "\0";
@@ -46,25 +54,16 @@ void EnviarMensaje(int socket_client, string mensaje)
   
 }
 
-int VerificarJugador(char comando, int& id_jugador)
+int VerificarJugador(char comando, int socket_client)
 {
   if (comando == 'C') //Es un mensaje de Chat
     return 1;
   else
   {
-    try
-    {
-      id_jugador = LISTA_CLIENTES.at(comando);
-    }
-    catch(const std::exception& e)
-    {
-      //TODO Que hacer en error?     
-      //return -1;
-    }
-    if (id_jugador == TURNO) //Le corresponde jugar
-      return 0;
+    if ( LISTA_CLIENTES[TURNO].second == socket_client)  
+      return 0; //Le corresponde jugar
     else
-      return -1;
+      return -1; //No le corresponde  
   }
 }
 
@@ -81,12 +80,14 @@ void BroadCast(string mensaje, int excepcion = -1)
 
 void SiguienteTurno()
 {
-
+  TURNO = TresRaya.num_jugada % num_jugadores;
+  int socket_client = LISTA_CLIENTES[TURNO].second;
+  EnviarMensaje(socket_client, "T"+ LISTA_CLIENTES[TURNO].first);
 }
 
-void VerificarEstado(int socket_client, char buffer[], int n)
+void VerificarEstado(int socket_client, char ficha,  int x, int y)
 {
-  switch (TresRaya.VerificarEstadoJuego())
+  switch (TresRaya.VerificarEstadoJuego(x, y, ficha))
   {
   case 0: //Juego en marcha
     SiguienteTurno(); 
@@ -95,12 +96,14 @@ void VerificarEstado(int socket_client, char buffer[], int n)
   case 1: //Hay ganador
     EnviarMensaje(socket_client, "W"); //A ganador
     BroadCast("L", socket_client); //A resto de jugadores
-    TresRaya.ReiniciarTablero();
+    //TresRaya.ReiniciarTablero();
+    IniciarJuego();
     break;
 
   case 2: //Hay empate
     BroadCast("="); //A todos jugadores
-    TresRaya.ReiniciarTablero();
+    //TresRaya.ReiniciarTablero();
+    IniciarJuego();
     break;
   }
 }
@@ -112,7 +115,7 @@ void Process_Client_Thread(int socket_client)
   int n;
   char comando;
   int longitud = 0;
-  int id_jugador;
+  //int id_jugador;
   do
     {
       if (LISTA_CLIENTES.size() < 2)
@@ -128,19 +131,20 @@ void Process_Client_Thread(int socket_client)
       { 
         comando = buffer[0];
 
-        switch (VerificarJugador(comando, id_jugador))
+        switch (VerificarJugador(comando, socket_client))
         {
         case 0: //Es turno de jugador
         {
           n = read(socket_client, buffer, 2);
           char x = buffer[0];
           char y = buffer[1];
+          //En este caso comando = ficha
           if (TresRaya.InsertarJugada( comando, (int)x, (int)y))
           {
             //Jugada Legal
             string jugada = "A" + comando + x + y;
-            BroadCast(jugada, id_jugador);
-            VerificarEstado(id_jugador, buffer, n);
+            BroadCast(jugada, socket_client);
+            VerificarEstado(socket_client, comando, (int)x ,(int)y );
           }
           else
           {
@@ -164,6 +168,8 @@ void Process_Client_Thread(int socket_client)
     shutdown(socket_client, SHUT_RDWR);
     close(socket_client); 
 }
+
+
 
 
 int main(void)
@@ -215,20 +221,26 @@ int main(void)
     {
       if (ClientSD != last_client && LISTA_CLIENTES.size() == 0)
       {
-        LISTA_CLIENTES.insert(std::pair<char,int>('O',(int)ClientSD));
+        LISTA_CLIENTES.push_back(std::pair<char,int>('O',(int)ClientSD));
         last_client = ClientSD;
       }
       else if (ClientSD != last_client && LISTA_CLIENTES.size() == 1)
       {
-        LISTA_CLIENTES.insert(std::pair<char,int>('X',(int)ClientSD));
+        LISTA_CLIENTES.push_back(std::pair<char,int>('X',(int)ClientSD));
         last_client = ClientSD;
       }     
     }
+    
     
 
     //Verificar al menos dos jugadores
 
     std::thread(Process_Client_Thread, ClientSD).detach();
+
+    if (TresRaya.num_jugada == 0)
+    {
+      IniciarJuego();
+    }
 
   } 
   

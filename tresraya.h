@@ -16,9 +16,12 @@ private:
     vector<vector<Casilla>> tablero;
 public:
     int size;
+    int num_jugada = 0; //En que jugada vamos?
+    int max_jugadas = size * size; 
     void ImprimirTablero();
     bool InsertarJugada(char ficha, int x, int y);
-    int VerificarEstadoJuego();
+    bool IsWin(int y, int x, char ficha);
+    int VerificarEstadoJuego(int x, int y, char ficha);
     void ReiniciarTablero();
     Raya(int size)
     {
@@ -58,19 +61,50 @@ bool Raya::InsertarJugada(char ficha, int x, int y)
     }
 }
 
-int Raya::VerificarEstadoJuego()
+bool Raya::IsWin(int y,int x,char ficha){
+    int d=0,a=0;
+    for(int i = 0; i < size; i++){
+        if(tablero[y][i].prop ==ficha)d++;
+        if(tablero[i][x].prop ==ficha)a++;
+    }
+    if (d==size || a==size ){return true;}
+    d=0;a=0;
+    if (x==y || (x+y)==size){
+        for(int i = 0; i < size; i++){
+            if(tablero[i][i].prop==ficha)d++;
+            if(tablero[i][size-1-i].prop==ficha)a++;
+        }
+        if (d==size || a==size ){return true;}
+    }
+    return false;
+}
+
+
+int Raya::VerificarEstadoJuego(int x, int y, char ficha)
 {
-    /*
-    
-    return 1; //Hay ganador
-    return -1; //Hay empate
-    */
-   return 0; //Juego en marcha
+    if (IsWin(y, x, ficha))
+    {
+        return 1; //Hay ganador
+    }
+    else
+    {
+        if (num_jugada >= max_jugadas)
+        {
+            //Hay empate
+            return -1;
+        }
+        else
+        {   //Juego en marcha
+            num_jugada++;
+            return 0;
+        }       
+    }
 }
 
 void Raya::ReiniciarTablero()
 {
-
+    tablero.assign(size, vector<Casilla>(size));
+    num_jugada = 0;
 }
 
 /*
@@ -81,6 +115,7 @@ int main()
     int turno = 0;
     string mensaje = "";
     Raya TresRaya(size);
+    int jugadas = 0;
 
     //max numero de jugadas = size * size
     for (int i = 0; i < size * size; ++i)
