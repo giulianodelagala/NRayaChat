@@ -136,15 +136,16 @@ void Process_Client_Thread(int socket_client)
         case 0: //Es turno de jugador
         {
           n = read(socket_client, buffer, 2);
-          char x = buffer[0];
-          char y = buffer[1];
+          char x = buffer[0]; int num_x = (int)x - 48;
+          char y = buffer[1]; int num_y = (int)y - 48;
           //En este caso comando = ficha
-          if (TresRaya.InsertarJugada( comando, (int)x, (int)y))
+          if (TresRaya.InsertarJugada( comando, num_x, num_y) )
           {
             //Jugada Legal
-            string jugada = "A" + comando + x + y;
+            string t(1, comando);
+            string jugada = "A" + t + to_string(num_x) + to_string(num_y);
             BroadCast(jugada, socket_client);
-            VerificarEstado(socket_client, comando, (int)x ,(int)y );
+            VerificarEstado(socket_client, comando, num_x , num_y );
           }
           else
           {
@@ -222,11 +223,13 @@ int main(void)
       if (ClientSD != last_client && LISTA_CLIENTES.size() == 0)
       {
         LISTA_CLIENTES.push_back(std::pair<char,int>('O',(int)ClientSD));
+        //EnviarMensaje(ClientSD, "Tu Fichas es O");
         last_client = ClientSD;
       }
       else if (ClientSD != last_client && LISTA_CLIENTES.size() == 1)
       {
         LISTA_CLIENTES.push_back(std::pair<char,int>('X',(int)ClientSD));
+        //EnviarMensaje(ClientSD, "Tu Fichas es X");
         last_client = ClientSD;
       }     
     }
