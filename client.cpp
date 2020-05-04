@@ -113,9 +113,9 @@ void EnvioMensaje(int SocketFD)
     cout << "\nIngrese jugada: ";
     getline(cin, msgToChat);
     //Estoy considerando que client escribe ejm "O21" (ficha+x+y)
-    cout << "Ficha" << msgToChat[0] << msgToChat[1] << msgToChat[2];
-    //if(!TresRaya.InsertarJugada(msgToChat[0],(int)(msgToChat[1]-48),(int)(msgToChat[2]-48)));
-    //  continue;
+    //cout << "Ficha" << msgToChat[0] << msgToChat[1] << msgToChat[2];
+    if(TresRaya.InsertarJugada(msgToChat[0],(int)msgToChat[1]-48,(int)msgToChat[2]-48) == false)
+      continue;
     n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
     TresRaya.ImprimirTablero();
     

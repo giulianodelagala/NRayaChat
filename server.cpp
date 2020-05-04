@@ -82,7 +82,8 @@ void SiguienteTurno()
 {
   TURNO = TresRaya.num_jugada % num_jugadores;
   int socket_client = LISTA_CLIENTES[TURNO].second;
-  EnviarMensaje(socket_client, "T"+ LISTA_CLIENTES[TURNO].first);
+  string ficha(1, LISTA_CLIENTES[TURNO].first);
+  EnviarMensaje(socket_client, "T" + ficha);
 }
 
 void VerificarEstado(int socket_client, char ficha,  int x, int y)
@@ -100,7 +101,7 @@ void VerificarEstado(int socket_client, char ficha,  int x, int y)
     IniciarJuego();
     break;
 
-  case 2: //Hay empate
+  case -1: //Hay empate
     BroadCast("="); //A todos jugadores
     //TresRaya.ReiniciarTablero();
     IniciarJuego();
