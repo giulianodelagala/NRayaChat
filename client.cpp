@@ -32,42 +32,50 @@ void RecepcionMensaje(int SocketFD)
     {
       switch (buffer[0]) //LetraComando
       {
-      case 'L':
-        cout << "Perdiste";
-        TresRaya.ReiniciarTablero();
-        break;
-      case 'W':
-        cout << "Ganaste";
-        TresRaya.ReiniciarTablero();
-      case '=':
-        cout << "Empate";
-        TresRaya.ReiniciarTablero();
-      case 'T':
-      {
-        n = read(SocketFD,buffer,1);
-        if (n < 0) perror("ERROR reading from socket");
-        cout << "Es tu turno " << buffer[0];
-      }
-      case 'A': //Verificar si es ficha ajena
-      { //Se supone por ahora que nos llega siempre de forma correcta
-        n = read(SocketFD,buffer,3); //[0] es la ficha ajena a insertar
-        //[1] [2] Estas son x y y por ahora de una cifra!!!
-        if (n < 0) perror("ERROR reading from socket");
-        
-        TresRaya.InsertarJugada(buffer[0], (int)(buffer[1]-48), (int)(buffer[2]-48));
-        TresRaya.ImprimirTablero();
-      }
+        case 'L':
+          cout << "Perdiste";
+          TresRaya.ReiniciarTablero();
+          break;
+        case 'W':
+          cout << "Ganaste";
+          TresRaya.ReiniciarTablero();
+          break;
+        case '=':
+          cout << "Empate";
+          TresRaya.ReiniciarTablero();
+          break;
+        case 'T':
+        {
+          n = read(SocketFD,buffer,1);
+          if (n < 0) perror("ERROR reading from socket");
+          cout << "Es tu turno " << buffer[0];
+          break;
+        }
+        case 'A': //Verificar si es ficha ajena
+        { //Se supone por ahora que nos llega siempre de forma correcta
+          n = read(SocketFD,buffer,3); //[0] es la ficha ajena a insertar
+          //[1] [2] Estas son x y y por ahora de una cifra!!!
+          if (n < 0) perror("ERROR reading from socket");
+          if (n == 3)
+          {
+            TresRaya.InsertarJugada(buffer[0], (int)(buffer[1]-48), (int)(buffer[2]-48));
+            TresRaya.ImprimirTablero();
+            bzero(buffer,256);
+          }
+          break;
+        }
       }
       
     }
       //longitud = stoi(buffer);
 
-      n = read(SocketFD,buffer,longitud);
-      cout << buffer << "\n";
+      //n = read(SocketFD,buffer,longitud);
+      //cout << buffer << "\n";
       bzero(buffer,256);
   }
 }
 
+/*
 string PadZeros(int number, int longitud)
 {
   string num_letra = to_string(number);
@@ -100,6 +108,7 @@ string ProtocoloMensaje(string mensaje)
   return nick+ "+" + msgtoChat + '\0';  
 
 }
+*/
 
 void EnvioMensaje(int SocketFD)
 {
