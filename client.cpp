@@ -54,7 +54,7 @@ void RecepcionMensaje(int SocketFD)
         //[1] [2] Estas son x y y por ahora de una cifra!!!
         if (n < 0) perror("ERROR reading from socket");
         
-        TresRaya.InsertarJugada(); //TODO
+        TresRaya.InsertarJugada(buffer[0], (int)(buffer[1]-48), (int)(buffer[2]-48));
         TresRaya.ImprimirTablero();
       }
       }
@@ -113,7 +113,8 @@ void EnvioMensaje(int SocketFD)
     cout << "\nIngrese jugada: ";
     getline(cin, msgToChat);
     //Estoy considerando que client escribe ejm "O21" (ficha+x+y)
-    if(!TresRaya.InsertarJugada(msgToChat[0],(int)msgToChat[0]-48,(int)msgToChat[1]-48));
+    cout << "Ficha" << msgToChat[0] << msgToChat[1] << msgToChat[2];
+    if(!TresRaya.InsertarJugada(msgToChat[0],(int)(msgToChat[1]-48),(int)(msgToChat[2]-48)));
       continue;
     n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
     TresRaya.ImprimirTablero();
