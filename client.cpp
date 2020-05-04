@@ -11,20 +11,57 @@
 #include <string>
 #include <thread>
 
+#include "tresraya.h"
+
 using namespace std;
+
+int size_juego = 3;
+Raya TresRaya(size_juego);
 
 void RecepcionMensaje(int SocketFD)
 {
   int n;
   char buffer[256];
-  int longitud;
+  int longitud = 0;
   for(;;)
   {
-    //Lectura length de mensaje
-    n = read(SocketFD,buffer,3);
+    //Lectura Comando
+    n = read(SocketFD,buffer,1);
     if (n < 0) perror("ERROR reading from socket");
-    if (n == 3)
-      longitud = stoi(buffer);
+    if (n == 1)
+    {
+      switch (buffer[0]) //LetraComando
+      {
+      case 'L':
+        cout << "Perdiste";
+        TresRaya.ReiniciarTablero();
+        break;
+      case 'W':
+        cout << "Ganaste";
+        TresRaya.ReiniciarTablero();
+      case '=':
+        cout << "Empate";
+        TresRaya.ReiniciarTablero();
+      case 'T':
+      {
+        n = read(SocketFD,buffer,1);
+        if (n < 0) perror("ERROR reading from socket");
+        cout << "Es tu turno " << buffer[0];
+      }
+      case 'A': //Verificar si es ficha ajena
+      { //Se supone por ahora que nos llega siempre de forma correcta
+        n = read(SocketFD,buffer,3); //[0] es la ficha ajena a insertar
+        //[1] [2] Estas son x y y por ahora de una cifra!!!
+        if (n < 0) perror("ERROR reading from socket");
+        
+        TresRaya.InsertarJugada(); //TODO
+        TresRaya.ImprimirTablero();
+      }
+      }
+      
+    }
+      //longitud = stoi(buffer);
+
       n = read(SocketFD,buffer,longitud);
       cout << buffer << "\n";
       bzero(buffer,256);
@@ -75,9 +112,11 @@ void EnvioMensaje(int SocketFD)
     cin.clear(); 
     cout << "\nIngrese jugada: ";
     getline(cin, msgToChat);
-    msgToChat = ProtocoloMensaje(msgToChat);
-    //cout << msgToChat;
+    //Estoy considerando que client escribe ejm "O21" (ficha+x+y)
+    if(!TresRaya.InsertarJugada(msgToChat[0],(int)msgToChat[0]-48,(int)msgToChat[1]-48));
+      continue;
     n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
+    TresRaya.ImprimirTablero();
     
     bzero(buffer, 256);    
   }
