@@ -60,6 +60,7 @@ void RecepcionMensaje(int SocketFD)
           {
             TresRaya.InsertarJugada(buffer[0], (int)(buffer[1]-48), (int)(buffer[2]-48));
             TresRaya.ImprimirTablero();
+            //cout << "Presione Enter para continuar...";
             bzero(buffer,256);
           }
           break;
@@ -112,23 +113,26 @@ string ProtocoloMensaje(string mensaje)
 
 void EnvioMensaje(int SocketFD)
 {
-  string msgToChat;
+  string msgToChat = "";
   char buffer[256];
   int n;
 
   for(;;)
   { 
-    cin.clear(); 
+    //cin.clear(); 
     cout << "\nIngrese jugada: ";
     getline(cin, msgToChat);
     //Estoy considerando que client escribe ejm "O21" (ficha+x+y)
     //cout << "Ficha" << msgToChat[0] << msgToChat[1] << msgToChat[2];
-    if(TresRaya.InsertarJugada(msgToChat[0],(int)msgToChat[1]-48,(int)msgToChat[2]-48) == false)
+    if(msgToChat != "" && TresRaya.InsertarJugada(msgToChat[0],(int)msgToChat[1]-48,(int)msgToChat[2]-48))
+    {
+      n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
+      TresRaya.ImprimirTablero();
+      bzero(buffer, 256);
+    }
+    else
       continue;
-    n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
-    TresRaya.ImprimirTablero();
-    
-    bzero(buffer, 256);    
+       
   }
 }
 

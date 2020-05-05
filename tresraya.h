@@ -45,8 +45,9 @@ void Raya::ImprimirTablero()
         x++;
         for( auto j = i->begin(); j != i->end(); ++j)           
             cout << j->prop ;          
-        cout << "\n";
-    }        
+        cout << endl ;
+    }
+    cout << "Presione Enter para continuar..." << endl;
 }
 
 bool Raya::InsertarJugada(char ficha, int x, int y)
@@ -62,7 +63,7 @@ bool Raya::InsertarJugada(char ficha, int x, int y)
     }
 }
 
-bool Raya::IsWin(int y,int x,char ficha){
+bool Raya::IsWin(int x,int y,char ficha){
     int d=0,a=0;
     for(int i = 0; i < size; i++){
         if(tablero[y][i].prop ==ficha)d++;
@@ -70,7 +71,7 @@ bool Raya::IsWin(int y,int x,char ficha){
     }
     if (d==size || a==size ){return true;}
     d=0;a=0;
-    if (x==y || (x+y)==size){
+    if (x==y || (x+y)==size-1){
         for(int i = 0; i < size; i++){
             if(tablero[i][i].prop==ficha)d++;
             if(tablero[i][size-1-i].prop==ficha)a++;
@@ -107,28 +108,3 @@ void Raya::ReiniciarTablero()
     tablero.assign(size, vector<Casilla>(size));
     num_jugada = 0;
 }
-
-/*
-int main()
-{
-    int size = 3;
-    int num_jugadores = 2;
-    int turno = 0;
-    string mensaje = "";
-    Raya TresRaya(size);
-    int jugadas = 0;
-
-    //max numero de jugadas = size * size
-    for (int i = 0; i < size * size; ++i)
-    {
-        turno = i % num_jugadores;
-        cout << "Turno jugador " << turno << "\n";
-        cout << "Ingrese jugada";
-        getline( cin, mensaje);
-        TresRaya.InsertarJugada(mensaje[0], (int)(mensaje[1])-48, (int)mensaje[2]-48);
-        TresRaya.ImprimirTablero();
-    }
-    return 0;
-}
-*/
-
