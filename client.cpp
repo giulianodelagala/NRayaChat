@@ -116,7 +116,7 @@ void EnvioMensaje(int SocketFD)
   string msgToChat = "";
   char buffer[256];
   int n;
-
+  TresRaya.ImprimirTablero();
   for(;;)
   { 
     //cin.clear(); 
@@ -154,8 +154,8 @@ int main(void)
   memset(&stSockAddr, 0, sizeof(struct sockaddr_in));
 
   stSockAddr.sin_family = AF_INET;
-  stSockAddr.sin_port = htons(1100);
-  Res = inet_pton(AF_INET, "127.0.0.1", &stSockAddr.sin_addr);
+  stSockAddr.sin_port = htons(10017);
+  Res = inet_pton(AF_INET, "51.15.220.108", &stSockAddr.sin_addr);
 
   if (0 > Res)
   {

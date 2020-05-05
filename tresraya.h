@@ -90,7 +90,7 @@ int Raya::VerificarEstadoJuego(int x, int y, char ficha)
     }
     else
     {
-        if (num_jugada >= max_jugadas)
+        if (num_jugada >= max_jugadas -1)
         {
             //Hay empate
             return -1;
@@ -105,6 +105,10 @@ int Raya::VerificarEstadoJuego(int x, int y, char ficha)
 
 void Raya::ReiniciarTablero()
 {
-    tablero.assign(size, vector<Casilla>(size));
+    for (auto i = tablero.begin(); i != tablero.end(); ++i)
+    {
+        for( auto j = i->begin(); j != i->end(); ++j)           
+            j->prop = '*';          
+    }
     num_jugada = 0;
 }
