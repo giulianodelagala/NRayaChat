@@ -17,7 +17,7 @@ private:
 public:
     int size;
     int num_jugada = 0; //En que jugada vamos?
-    int max_jugadas = size * size; 
+    int max_jugadas; 
     void ImprimirTablero();
     bool InsertarJugada(char ficha, int x, int y);
     bool IsWin(int y, int x, char ficha);
@@ -27,6 +27,7 @@ public:
     {
         this->size = size;
         tablero.resize(size, vector<Casilla>(size));
+        this->max_jugadas = size * size;
     }
     ~Raya(){};
 };
@@ -34,7 +35,7 @@ public:
 void Raya::ImprimirTablero()
 {
     int x = 0;
-    string col = "  ";
+    string col = "\n  ";
     for (int y = 0; y < size; ++y)
         col+= to_string(y);
     cout << col << "\n";
