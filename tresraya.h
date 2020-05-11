@@ -22,7 +22,7 @@ public:
     bool InsertarJugada(char ficha, int x, int y);
     bool IsWin(int y, int x, char ficha);
     int VerificarEstadoJuego(int x, int y, char ficha);
-    void ReiniciarTablero();
+    void ReiniciarTablero(int size);
     Raya(int size)
     {
         this->size = size;
@@ -103,8 +103,12 @@ int Raya::VerificarEstadoJuego(int x, int y, char ficha)
     }
 }
 
-void Raya::ReiniciarTablero()
+void Raya::ReiniciarTablero(int size)
 {
+    this->size = size;
+    tablero.resize(size, vector<Casilla>(size));
+    this->max_jugadas = size * size;
+
     for (auto i = tablero.begin(); i != tablero.end(); ++i)
     {
         for( auto j = i->begin(); j != i->end(); ++j)           

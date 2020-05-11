@@ -24,8 +24,8 @@ std::map<int,char> R_LISTA;
 
 // Variables del Juego
 int TURNO = 0;
-int size_juego = 3;
-int num_jugadores = 2;
+int size_juego = 5;
+int NUM_JUGADORES = 2;
 Raya TresRaya(size_juego);
 ///////////
 
@@ -38,49 +38,39 @@ string PadZeros(int number, int longitud)
   return num_letra;
 }
 
-void IniciarJuego()
+void IniciarJuego(int size_tablero)
 {
-  TresRaya.ReiniciarTablero();
+  TresRaya.ReiniciarTablero(size_tablero);
   TURNO = 0;
 
 }
 
 void EnviarMensaje(int socket_client, string mensaje)
 {
-  //mensaje = PadZeros(mensaje.length() + 1, 3) + mensaje + "\0";
-
   int n = write(socket_client, mensaje.c_str(), mensaje.length());
   if (n < 0) perror("ERROR writing to socket");
   
 }
 
-int VerificarJugador(char comando, int socket_client)
+int IsTurno(int socket_client)
 {
-  if (comando == 'C') //Es un mensaje de Chat
-    return 1;
+  if ( LISTA_CLIENTES[TURNO].second == socket_client)  
+    return true; //Le corresponde jugar
   else
-  {
-    if ( LISTA_CLIENTES[TURNO].second == socket_client)  
-      return 0; //Le corresponde jugar
-    else
-      return -1; //No le corresponde  
-  }
+    return false; //No le corresponde  
 }
 
-void BroadCast(string mensaje, int excepcion = -1)
+void BroadCast(string mensaje)
 {
   for (auto &i : LISTA_CLIENTES)
   {
-    if (i.second != excepcion)
-    {
       EnviarMensaje(i.second, mensaje);
-    }
   }
 }
 
 void SiguienteTurno()
 {
-  TURNO = TresRaya.num_jugada % num_jugadores;
+  TURNO = TresRaya.num_jugada % NUM_JUGADORES;
   int socket_client = LISTA_CLIENTES[TURNO].second;
   string ficha(1, LISTA_CLIENTES[TURNO].first);
   EnviarMensaje(socket_client, "T" + ficha);
@@ -96,15 +86,13 @@ void VerificarEstado(int socket_client, char ficha,  int x, int y)
   
   case 1: //Hay ganador
     EnviarMensaje(socket_client, "W"); //A ganador
-    BroadCast("L", socket_client); //A resto de jugadores
-    //TresRaya.ReiniciarTablero();
-    IniciarJuego();
+    BroadCast("L"); //A resto de jugadores
+    IniciarJuego(size_juego);
     break;
 
   case -1: //Hay empate
     BroadCast("="); //A todos jugadores
-    //TresRaya.ReiniciarTablero();
-    IniciarJuego();
+    IniciarJuego(size_juego);
     break;
   }
 }
@@ -132,37 +120,91 @@ void Process_Client_Thread(int socket_client)
       { 
         comando = buffer[0];
 
-        switch (VerificarJugador(comando, socket_client))
+        switch (comando)
         {
-        case 0: //Es turno de jugador
+        case 'A': 
         {
-          n = read(socket_client, buffer, 2);
-          char x = buffer[0]; int num_x = (int)x - 48;
-          char y = buffer[1]; int num_y = (int)y - 48;
-          //En este caso comando = ficha
-          if (TresRaya.InsertarJugada( comando, num_x, num_y) )
-          {
-            //Jugada Legal
-            string t(1, comando);
-            string jugada = "A" + t + to_string(num_x) + to_string(num_y);
-            BroadCast(jugada, socket_client);
-            VerificarEstado(socket_client, comando, num_x , num_y );
-          }
+          if (IsTurno(socket_client))
+          {  //Es turno de jugador 
+            n = read(socket_client, buffer, 2);
+            char x = buffer[0]; int num_x = (int)x - 48;
+            char y = buffer[1]; int num_y = (int)y - 48;
+            //En este caso comando = ficha
+            if (TresRaya.InsertarJugada( comando, num_x, num_y) )
+            {
+              //Jugada Legal
+              string t(1, comando);
+              string jugada = "A" + t + to_string(num_x) + to_string(num_y);
+              BroadCast(jugada);
+              VerificarEstado(socket_client, comando, num_x , num_y );
+            }
+            else
+            {
+              //JugadaIlegal Mensaje de Error
+              EnviarMensaje(socket_client, "C08Invalida");          
+            } 
+          }     
           else
-          {
-            //JugadaIlegal Mensaje de Error
-            EnviarMensaje(socket_client, "C08Invalida");          
-          }       
+          { //No es turno 
+            n = read(socket_client, buffer, 2); //Purga
+            EnviarMensaje(socket_client, "C14No es su turno");
+          }
           break;
         }
-        case 1: //Es un mensaje de chat
-          BroadCast("Mensaje", socket_client); //TODO
+        case 'C': //Es un mensaje de chat
+          //Leer tamaño mensaje
+          n = read(socket_client, buffer, 2);
+          if (n == 2)
+          {
+            string long_mens = buffer;
+            int longitud = stoi(buffer);
+            //Leer mensaje
+            n = read(socket_client, buffer, longitud);
+            if (n == longitud)
+            {
+              msgToChat = buffer;
+              msgToChat = msgToChat.substr(0, longitud);
+              msgToChat = "C" + long_mens + msgToChat;
+              BroadCast(msgToChat);
+            }         
+          }
+          break;
+        case 'S': //Es Creacion de Tablero
+        {
+          n = read(socket_client, buffer, 2);
+          if (n == 2)
+          {
+            int size_tab = stoi(buffer);
+            IniciarJuego(size_tab);
+          }
+          break;
+        }
+        case 'U': //Elegir ficha
+        {
+          n = read(socket_client, buffer, 1);
+          if (n == 1)
+          {
+            LISTA_CLIENTES.push_back(pair<char,int>(buffer[0],(int)socket_client));
+          }
+          break;
+        }
+        case 'N': //Numero jugadores
+        {
+          n = read(socket_client, buffer, 1);
+          if (n == 1)
+          {
+            string num = buffer;
+            num = num.substr(0,1);
+            NUM_JUGADORES = stoi(num);
+          }
           break;
 
-        case -1:
+        }
+        default:
           EnviarMensaje(socket_client, "C08Invalida"); //Mensaje de Error
           break;
         }
+        
       }
 
     } while (true);
@@ -206,9 +248,7 @@ int main(void)
     exit(EXIT_FAILURE);
   }
 
-  //LISTA_CLIENTES.insert(std::pair<string,int>("lista",9999));
-
-  int last_client = -1;
+  //int last_client = -1;
   for(;;)
   {
     int ClientSD = accept(SocketFD, NULL, NULL);
@@ -219,32 +259,15 @@ int main(void)
       close(SocketFD);
       exit(EXIT_FAILURE);
     }
-    else
-    {
-      if (ClientSD != last_client && LISTA_CLIENTES.size() == 0)
-      {
-        LISTA_CLIENTES.push_back(std::pair<char,int>('O',(int)ClientSD));
-        //EnviarMensaje(ClientSD, "Tu Fichas es O");
-        last_client = ClientSD;
-      }
-      else if (ClientSD != last_client && LISTA_CLIENTES.size() == 1)
-      {
-        LISTA_CLIENTES.push_back(std::pair<char,int>('X',(int)ClientSD));
-        //EnviarMensaje(ClientSD, "Tu Fichas es X");
-        last_client = ClientSD;
-      }     
-    }
     
-    
-
-    //Verificar al menos dos jugadores
-
     std::thread(Process_Client_Thread, ClientSD).detach();
 
+    /*
     if (TresRaya.num_jugada == 0)
     {
       IniciarJuego();
     }
+    */
 
   } 
   

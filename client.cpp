@@ -15,8 +15,24 @@
 
 using namespace std;
 
-int size_juego = 3;
-Raya TresRaya(size_juego);
+int SIZE_JUEGO = 3;
+Raya TresRaya(SIZE_JUEGO);
+string usuario = "";
+
+string PadZeros(int number, int longitud)
+{
+  string num_letra = to_string(number);
+  for (int i = 0; i < longitud - num_letra.length()+1; ++i)
+    num_letra = "0" + num_letra;
+  
+  return num_letra;
+}
+
+string ProtocoloMensaje(string mensaje)
+{
+  int longitud = mensaje.length();
+  return "C" + PadZeros(longitud, 2) + mensaje.substr(1);
+}
 
 void RecepcionMensaje(int SocketFD)
 {
@@ -34,15 +50,15 @@ void RecepcionMensaje(int SocketFD)
       {
         case 'L':
           cout << "Perdiste";
-          TresRaya.ReiniciarTablero();
+          TresRaya.ReiniciarTablero(SIZE_JUEGO);
           break;
         case 'W':
           cout << "Ganaste";
-          TresRaya.ReiniciarTablero();
+          TresRaya.ReiniciarTablero(SIZE_JUEGO);
           break;
         case '=':
           cout << "Empate";
-          TresRaya.ReiniciarTablero();
+          TresRaya.ReiniciarTablero(SIZE_JUEGO);
           break;
         case 'T':
         {
@@ -51,70 +67,55 @@ void RecepcionMensaje(int SocketFD)
           cout << "Es tu turno " << buffer[0];
           break;
         }
-        case 'A': //Verificar si es ficha ajena
-        { //Se supone por ahora que nos llega siempre de forma correcta
-          n = read(SocketFD,buffer,3); //[0] es la ficha ajena a insertar
+        case 'A': 
+        { 
+          n = read(SocketFD,buffer,3); //[0] es la ficha a insertar
           //[1] [2] Estas son x y y por ahora de una cifra!!!
           if (n < 0) perror("ERROR reading from socket");
           if (n == 3)
           {
             TresRaya.InsertarJugada(buffer[0], (int)(buffer[1]-48), (int)(buffer[2]-48));
             TresRaya.ImprimirTablero();
-            //cout << "Presione Enter para continuar...";
             bzero(buffer,256);
           }
           break;
         }
+        case 'C': //Mensaje
+        {
+          n = read(SocketFD, buffer, 2);
+          if (n == 2)
+          {
+            longitud = stoi(buffer);
+            //Leer mensaje
+            n = read(SocketFD, buffer, longitud);
+            if (n == longitud)
+            {
+              cout << buffer << "\n";
+            } 
+          }
+          break;
+        }
+        case 'S': // Creacion Tablero
+        {
+          n = read(SocketFD, buffer, 2);
+          if (n == 2)
+          {
+            SIZE_JUEGO = stoi(buffer);
+            TresRaya.ReiniciarTablero(SIZE_JUEGO);
+          }
+          break;
+        }
+
       }
       
     }
-      //longitud = stoi(buffer);
-
-      //n = read(SocketFD,buffer,longitud);
-      //cout << buffer << "\n";
-      bzero(buffer,256);
   }
 }
-
-/*
-string PadZeros(int number, int longitud)
-{
-  string num_letra = to_string(number);
-  for (int i = 0; i < longitud - num_letra.length()+1; ++i)
-    num_letra = "0" + num_letra;
-  
-  return num_letra;
-}
-
-string ProtocoloMensaje(string mensaje)
-{
-  //Encontrar primer espacio en blanco
-  size_t blank = mensaje.find(" ");
-  string nick = "";
-  if (blank != string::npos)
-  {
-    //Encontro blank supuesto nickname
-    nick = mensaje.substr(0,blank);
-    nick = PadZeros(blank +1, 2) + nick;
-  }
-  else
-  {
-    //Es supuesto comando (incluir fin de cadena)
-    return PadZeros(mensaje.length() + 1,2) + mensaje + '\0';  
-  }
-  //Generar nick + mensaje
-  string msgtoChat = mensaje.substr(blank+1);
-  msgtoChat = PadZeros(msgtoChat.length() +1, 3) + msgtoChat;
-
-  return nick+ "+" + msgtoChat + '\0';  
-
-}
-*/
 
 void EnvioMensaje(int SocketFD)
 {
   string msgToChat = "";
-  char buffer[256];
+  //char buffer[256];
   int n;
   TresRaya.ImprimirTablero();
   for(;;)
@@ -122,13 +123,16 @@ void EnvioMensaje(int SocketFD)
     //cin.clear(); 
     cout << "\nIngrese jugada: ";
     getline(cin, msgToChat);
-    //Estoy considerando que client escribe ejm "O21" (ficha+x+y)
-    //cout << "Ficha" << msgToChat[0] << msgToChat[1] << msgToChat[2];
-    if(msgToChat != "" && TresRaya.InsertarJugada(msgToChat[0],(int)msgToChat[1]-48,(int)msgToChat[2]-48))
-    {
+    if(msgToChat != "" && msgToChat[0] == 'C')
+    { //Es mensaje a Chat
+      //Preparar mensaje
+      msgToChat = ProtocoloMensaje(msgToChat);
       n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
-      TresRaya.ImprimirTablero();
-      bzero(buffer, 256);
+    }
+    else if (msgToChat != "")
+    {
+      //Posible Comando o jugada
+      n = write(SocketFD, msgToChat.c_str(), msgToChat.length());
     }
     else
       continue;
@@ -177,6 +181,11 @@ int main(void)
     exit(EXIT_FAILURE);
   }
   bzero(buffer, 256);
+  // Creacion de usuario///
+  cout <<"Ingrese su ficha\n";
+  getline(cin, usuario);
+  msgFromChat = "U" + usuario[0];
+  n = write(SocketFD, msgFromChat.c_str(), msgFromChat.length());
 
   //Thread de Envio y Recepcion de Mensajes
   std::thread(EnvioMensaje, SocketFD).detach();
